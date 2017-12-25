@@ -13,22 +13,22 @@
 
 
 ## 使用
-* ### 引入
+### 引入
 ----------------
 	//SwipeRecyclerView
 	compile 'com.yanzhenjie:recyclerview-swipe:1.1.3'
 
 
-* ### 开发
+### 开发
 ------------------------------------------------------
-#### 布局
+* #### 布局
 	<com.yanzhenjie.recyclerview.swipe.SwipeMenuRecyclerView
 	    android:id="@+id/swipe_rv"
 	    android:layout_width="match_parent"
 	    android:layout_height="match_parent">
 	</com.yanzhenjie.recyclerview.swipe.SwipeMenuRecyclerView>
 
-#### RecyclerView使用
+* #### RecyclerView使用
 1. 初始化数据。你可以从服务器获取、本地数据库拿，也可以自己zou  
 > 
 	private void setData() {  
@@ -90,3 +90,15 @@
 	recyclerAdapter = new RecyclerAdapter(this, books);
 	swipeMenu_rv.setAdapter(recyclerAdapter);
 
+* ### 侧滑菜单
+1. 侧滑菜单集成的很方便，你只需要这样就行了  
+> 
+	swipeMenu_rv.setSwipeMenuCreator(mMenuCreator);
+2. 那么mMenuCreator没有怎么办，没有当然是创建啦，只需要创建一个SwipeMenuCreator即可  
+> 
+	SwipeMenuCreator mMenuCreator = new SwipeMenuCreator() {
+	            @Override
+	            public void onCreateMenu(SwipeMenu swipeLeftMenu, SwipeMenu swipeRightMenu, int viewType) {
+	            	//TODO 创建item菜单
+	            }
+	};
