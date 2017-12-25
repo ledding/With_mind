@@ -21,7 +21,8 @@
 
 ### 开发
 ------------------------------------------------------
-* #### 布局
+* #### 布局  
+> 
 	<com.yanzhenjie.recyclerview.swipe.SwipeMenuRecyclerView
 	    android:id="@+id/swipe_rv"
 	    android:layout_width="match_parent"
