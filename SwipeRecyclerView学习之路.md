@@ -1,4 +1,4 @@
-# **SwipeRecyclerView学习之路**
+# **SwipeRecyclerView学习之路(一)**
 
 #### _本着初学者的精神 哪怕在简单的东西都要记下_
 
@@ -91,10 +91,11 @@
 	recyclerAdapter = new RecyclerAdapter(this, books);
 	swipeMenu_rv.setAdapter(recyclerAdapter);
 
-* ### 侧滑菜单
+* #### 侧滑菜单
 1. 侧滑菜单集成的很方便，你只需要这样就行了  
 > 
 	swipeMenu_rv.setSwipeMenuCreator(mMenuCreator);
+	
 2. 那么mMenuCreator没有怎么办，没有当然是创建啦，只需要创建一个SwipeMenuCreator即可  
 > 
 	SwipeMenuCreator mMenuCreator = new SwipeMenuCreator() {
@@ -103,3 +104,54 @@
 	            	//TODO 创建item菜单
 	            }
 	};
+	
+3. 创建item菜单并设置其属性样式  
+> 
+	SwipeMenuItem deleteMenu = new SwipeMenuItem(getApplicationContext());
+	//添加菜单宽高、图片、背景色等
+	deleteMenu.setWidth(200);
+	deleteMenu.setHeight(LinearLayoutCompat.LayoutParams.MATCH_PARENT);
+	deleteMenu.setImage(R.mipmap.delete);
+	deleteMenu.setBackgroundColor(Color.RED);
+	swipeRightMenu.addMenuItem(deleteMenu); //在item的右侧添加一个菜单
+
+   由于作者在SwipeMenuItem类中set方法返回值都为SwipeMenuItem，所以我们也可以用链表的方式设置其属性样式
+> 
+	public SwipeMenuItem setBackground(@DrawableRes int resId) {
+	    return setBackground(ContextCompat.getDrawable(mContext, resId));
+	}
+
+	public SwipeMenuItem setBackground(Drawable background) {
+	    this.background = background;
+	    return this;
+	}
+
+	SwipeMenuItem updateMenu = new SwipeMenuItem(getApplicationContext());
+	//链式添加菜单属性内容
+	updateMenu.setWidth(200)
+	           .setHeight(LinearLayoutCompat.LayoutParams.MATCH_PARENT)
+	           .setText("点击更改")
+	           .setTextSize(22)
+	           .setTextColor(Color.WHITE)
+	           .setBackgroundColor(Color.parseColor("#aaaaaa"));
+	swipeLeftMenu.addMenuItem(updateMenu); //在item的左侧添加一个菜单
+
+4. 运行下代码，右滑一下，右滑菜单出来了，但点击一下却是没什么反应，当然没反应，你没设置item菜单点击事件  
+> 
+	//item菜单的点击监听
+        SwipeMenuItemClickListener mMenuItemClickListener = new SwipeMenuItemClickListener() {
+            @Override
+            public void onItemClick(SwipeMenuBridge menuBridge) {
+                //任何操作前，必须先关闭菜单，否则可能出现Item菜单打开状态错乱
+                menuBridge.closeMenu();
+
+                int direction = menuBridge.getDirection(); //左侧还是右侧菜单 左侧：1 右侧：-1;
+                int adapterPosition = menuBridge.getAdapterPosition(); //item的position
+                int menuPosition = menuBridge.getPosition(); //item中菜单的Position
+
+                Toast.makeText(SwipeRVActivity.this, "direction:" + direction + "\nadpterPosition:" + adapterPosition + "\nmenuPosition:" + menuPosition, Toast.LENGTH_SHORT).show();
+
+            }
+        };
+        swipeMenu_rv.setSwipeMenuItemClickListener(mMenuItemClickListener);
+	
