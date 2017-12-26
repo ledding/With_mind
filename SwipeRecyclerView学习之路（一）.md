@@ -1,6 +1,6 @@
 # **SwipeRecyclerView学习之路(一)**
 
-#### _本着初学者的精神 哪怕在简单的东西都要记下_
+#### _本着初学者的精神 哪怕再简单的东西都要记下_
 
 ## 简介
 > SwipeRecyclerView是基于RecyclerView封装的github上一个经典的开源库，目前版本v1.1.0，具有侧滑菜单、拖拽排序、侧滑删除、添加或移除HeaderView和FooterView、自动或点击加载更多等特性，因此成为了android程序猿偏爱的列表控件。
