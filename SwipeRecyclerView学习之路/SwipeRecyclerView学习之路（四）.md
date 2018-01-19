@@ -163,3 +163,182 @@
 分析
 --------------------------------
 #### 加载更多 ####
+首先来看看第一步useDefaultLoadMore代码中是个什么
+>
+
+    public void useDefaultLoadMore() {
+        DefaultLoadMoreView defaultLoadMoreView = new DefaultLoadMoreView(getContext());
+        addFooterView(defaultLoadMoreView);
+        setLoadMoreView(defaultLoadMoreView);
+    }
+
+是不是似曾相识，对的在前面我们说自定义加载更多的时候也是这三行代码，只不够DefaultLoadMoreView换成了自定义的LoadMoewView而已。addFooterView方法的
+实现在上篇中已经说过，这里的目的是将LoadMoreView添加为FooterView.而setLoadMoreView方法则是为该LoadMoreView设置监听，其接口如下：
+>
+
+    public interface LoadMoreView {
+
+        /**
+         * Show progress.
+         */
+        void onLoading();
+
+        /**
+         * Load finish, handle result.
+         */
+        void onLoadFinish(boolean dataEmpty, boolean hasMore);
+
+        /**
+         * Non-auto-loading mode, you can to click on the item to load.
+         */
+        void onWaitToLoadMore(LoadMoreListener loadMoreListener);
+
+        /**
+         * Load error.
+         */
+        void onLoadError(int errorCode, String errorMessage);
+    }
+
+自定义LoadMoreView时继承SwipeMenuRecyclerView.LoadMoreView并实现以上四个方法，我们以DefaultLoadMoreView为例：
+>
+
+    @Override
+    public void onLoading() {
+        setVisibility(VISIBLE);
+        mLoadingView.setVisibility(VISIBLE);
+        mTvMessage.setVisibility(VISIBLE);
+        mTvMessage.setText(R.string.recycler_swipe_load_more_message);
+    }
+
+    @Override
+    public void onLoadFinish(boolean dataEmpty, boolean hasMore) {
+        if (!hasMore) {
+            setVisibility(VISIBLE);
+
+            if (dataEmpty) {
+                mLoadingView.setVisibility(GONE);
+                mTvMessage.setVisibility(VISIBLE);
+                mTvMessage.setText(R.string.recycler_swipe_data_empty);
+            } else {
+                mLoadingView.setVisibility(GONE);
+                mTvMessage.setVisibility(VISIBLE);
+                mTvMessage.setText(R.string.recycler_swipe_more_not);
+            }
+        } else {
+            setVisibility(INVISIBLE);
+        }
+    }
+
+    @Override
+    public void onWaitToLoadMore(SwipeMenuRecyclerView.LoadMoreListener loadMoreListener) {
+        this.mLoadMoreListener = loadMoreListener;
+
+        setVisibility(VISIBLE);
+        mLoadingView.setVisibility(GONE);
+        mTvMessage.setVisibility(VISIBLE);
+        mTvMessage.setText(R.string.recycler_swipe_click_load_more);
+    }
+
+    @Override
+    public void onLoadError(int errorCode, String errorMessage) {
+        setVisibility(VISIBLE);
+        mLoadingView.setVisibility(GONE);
+        mTvMessage.setVisibility(VISIBLE);
+        mTvMessage.setText(TextUtils.isEmpty(errorMessage) ? getContext().getString(R.string.recycler_swipe_load_error) : errorMessage);
+    }
+
+从上面看当加载完成时，判断是否还有更多数据，若没有隐藏LoadMoreView,若存在，则根据此次数据是否为空，显示不同的UI，是不是很熟悉？对了，这就解释了上面为什么最后一定要调用loadMoreFinish，因为loadMoreFinish方法中最终调用了onLoadFinish(dataEmpty, hasMore)。
+>
+
+    public final void loadMoreFinish(boolean dataEmpty, boolean hasMore) {
+        isLoadMore = false;
+        isLoadError = false;
+
+        mDataEmpty = dataEmpty;
+        mHasMore = hasMore;
+
+        if (mLoadMoreView != null) {
+            mLoadMoreView.onLoadFinish(dataEmpty, hasMore);
+        }
+    }
+
+回到正题，接下来就是设置加载更多的监听，其接口为：
+>
+
+    public interface LoadMoreListener {
+
+        /**
+         * More data should be requested.
+         */
+        void onLoadMore();
+    }
+
+对，就是我们new出来的LoadMoreListener并实现了其onLoadMore方法。那么onLoadMore在哪被调用了，最终我们锁定了SwipeMuneRecyclerView中的dispatch-LoadMore
+>
+
+    private void dispatchLoadMore() {
+        if (isLoadError) return;
+
+        if (!isAutoLoadMore) {
+            if (mLoadMoreView != null)
+                mLoadMoreView.onWaitToLoadMore(mLoadMoreListener);
+        } else {
+            if (isLoadMore || mDataEmpty || !mHasMore) return;
+
+            isLoadMore = true;
+
+            if (mLoadMoreView != null)
+                mLoadMoreView.onLoading();
+
+            if (mLoadMoreListener != null)
+                mLoadMoreListener.onLoadMore();
+        }
+    }
+
+逻辑也很简单，判断是否为自动加载，若不是，调用onWaitToLoadMore，翻看前面的代码可以看到其中传入了SwipeMenuRecyclerView.LoadMoreListener，在该
+LoadMoreView的onClick中调用了mLoadMoreListener.onLoadMore()，即点击加载更多；若是，则判断是否正在加载，是否本次数据为空，是否没有更多数据，若都
+不是，才执行mLoadMoreListener.onLoadMore()。
+SwipeMenuRecyclerView继承自RecyclerView，而RecyclerView中又存在抽象类OnScrollListener，这里重写的就是其中的onScrollStateChanged和onScrolled
+方法。onScrollStateChanged表示滑动状态变化时调用，onScrolled则表示滑动时不停的调用。
+>
+
+    @Override
+    public void onScrollStateChanged(int state) {
+        this.mScrollState = state;
+    }
+
+    @Override
+    public void onScrolled(int dx, int dy) {
+        LayoutManager layoutManager = getLayoutManager();
+        if (layoutManager != null && layoutManager instanceof LinearLayoutManager) {
+            LinearLayoutManager linearLayoutManager = (LinearLayoutManager) layoutManager;
+
+            int itemCount = layoutManager.getItemCount();
+            if (itemCount <= 0) return;
+
+            int lastVisiblePosition = linearLayoutManager.findLastVisibleItemPosition();
+
+            if (itemCount == lastVisiblePosition + 1 &&
+                    (mScrollState == SCROLL_STATE_DRAGGING || mScrollState == SCROLL_STATE_SETTLING)) {
+                dispatchLoadMore();
+            }
+        } else if (layoutManager != null && layoutManager instanceof StaggeredGridLayoutManager) {
+            StaggeredGridLayoutManager staggeredGridLayoutManager = (StaggeredGridLayoutManager) layoutManager;
+
+            int itemCount = layoutManager.getItemCount();
+            if (itemCount <= 0) return;
+
+            int[] lastVisiblePositionArray = staggeredGridLayoutManager.findLastCompletelyVisibleItemPositions(null);
+            int lastVisiblePosition = lastVisiblePositionArray[lastVisiblePositionArray.length - 1];
+
+            if (itemCount == lastVisiblePosition + 1 &&
+                    (mScrollState == SCROLL_STATE_DRAGGING || mScrollState == SCROLL_STATE_SETTLING)) {
+                dispatchLoadMore();
+            }
+        }
+    }
+
+从上面onScrolled中代码看出，当滑动时判断布局，并获取最后的位置，判断当滑动到最后位置，滑动状态为正在拖拽或者拖拽结束时，调用dispatchLoadMore方法实
+现加载更多。
+
+
