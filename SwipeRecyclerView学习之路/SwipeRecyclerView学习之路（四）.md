@@ -1,4 +1,4 @@
-# **SwipeRecyclerView学习之路（三）**
+# **SwipeRecyclerView学习之路（四）**
 #### *本着初学者的精神 哪怕再简单的东西都要记下*
 
 概述
@@ -51,6 +51,77 @@
 则必须调用loadMoreFinish方法，其有两个boolean参数，第一个参数表示此次数据是否为空，第二个参数表示是否还有更多的数据。至于为什么调用该方法，又起到了
 什么作用，我们待会儿一一分析，至此运行下代码，加载更多功能就可以正常工作了。
 
+自定义加载更多View也很简单，只需要自定义一个View，并实现一个接口即可：
+>
+
+    public class DefineLoadMoreView extends LinearLayout implements SwipeMenuRecyclerView.LoadMoreView,View.OnClickListener {
+
+        private LoadMoreListener mLoadMoreListener;
+
+        public DefineLoadMoreView(Context context) {
+            super(context);
+            ...
+            setOnClickListener(this);
+       }
+
+        /**
+         * 马上开始回调加载更多了，这里应该显示进度条。
+         */
+        @Override
+        public void onLoading() {
+            // 展示加载更多的动画和提示信息。
+            ...
+        }
+    
+        /**
+         * 加载更多完成了。
+         *
+         * @param dataEmpty 是否请求到空数据。
+         * @param hasMore   是否还有更多数据等待请求。
+         */
+        @Override
+        public void onLoadFinish(boolean dataEmpty, boolean hasMore) {
+            // 根据参数，显示没有数据的提示、没有更多数据的提示。
+            // 如果都不存在，则都不用显示。
+        }
+    
+        /**
+         * 加载出错啦，下面的错误码和错误信息二选一。
+         *
+         * @param errorCode    错误码。
+         * @param errorMessage 错误信息。
+         */
+        @Override
+        public void onLoadError(int errorCode, String errorMessage) {
+        }
+    
+        /**
+         * 调用了setAutoLoadMore(false)后，在需要加载更多的时候，此方法被调用，并传入listener。
+         */
+        @Override
+        public void onWaitToLoadMore(SwipeMenuRecyclerView.LoadMoreListener loadMoreListener) {
+            this.mLoadMoreListener = loadMoreListener;
+            }
+    
+        /**
+         * 非自动加载更多时mLoadMoreListener才不为空。
+         */
+        @Override
+        public void onClick(View v) {
+            if (mLoadMoreListener != null) mLoadMoreListener.onLoadMore();
+        }
+    }
+
+接下来就是初始化工作了
+>
+
+        // 自定义的核心就是DefineLoadMoreView类。
+        DefineLoadMoreView loadMoreView = new DefineLoadMoreView(this);
+        mRecyclerView.addFooterView(loadMoreView); // 添加为Footer。
+        mRecyclerView.setLoadMoreView(loadMoreView); // 设置LoadMoreView更新监听。
+        mRecyclerView.setLoadMoreListener(mLoadMoreListener); // 加载更多的监听。
+
+
 #### 下拉刷新 ####
 至于下拉刷新就更简单了，在android.support.v4包中有一个SwipeRefreshLayout,当你需要用到下拉刷新的时候，直接将其嵌套在需要刷新的布局之外。
 >
@@ -88,4 +159,7 @@
             }, 1000); // 延时模拟请求服务器。
         }
     };
-   
+   
+分析
+--------------------------------
+#### 加载更多 ####
